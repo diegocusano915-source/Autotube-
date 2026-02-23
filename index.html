@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoTube — Real YT Uploader</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #FF0033;
+  --red-glow: rgba(255,0,51,0.18);
+  --bg: #080808;
+  --surface: #101010;
+  --surface2: #181818;
+  --border: #222;
+  --text: #f0f0f0;
+  --muted: #4a4a4a;
+  --muted2: #666;
+  --green: #00e676;
+  --gold: #ffc107;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+/* grain */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.5;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ── SETUP SCREEN ── */
+#screen-setup {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.setup-card {
+  width: 100%;
+  max-width: 580px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.setup-hero {
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a0005 100%);
+  padding: 40px 40px 32px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.setup-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, var(--red-glow) 0%, transparent 70%);
+}
+.yt-logo-big {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.yt-icon {
+  width: 48px; height: 34px;
+  background: var(--red);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.setup-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 3px;
+  line-height: 1;
+}
+.setup-title span { color: var(--red); }
+.setup-subtitle {
+  font-size: 13px;
+  color: var(--muted2);
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 6px;
+}
+.setup-body { padding: 32px 40px; }
+.steps {
+  counter-reset: step;
+  margin-bottom: 28px;
+}
+.step {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  counter-increment: step;
+}
+.step:last-child { border: none; }
+.step-num {
+  width: 28px; height: 28px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--red);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.step-num::before { content: counter(step); }
+.step-text { font-size: 13px; line-height: 1.6; color: var(--muted2); }
+.step-text strong { color: var(--text); }
+.step-text code {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--gold);
+}
+.step-link {
+  color: var(--red);
+  text-decoration: none;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  display: inline-block;
+  margin-top: 3px;
+}
+.step-link:hover { text-decoration: underline; }
+.input-group { margin-bottom: 16px; }
+.input-label {
+  display: block;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted2);
+  margin-bottom: 8px;
+}
+.input-field {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-field:focus { border-color: var(--red); }
+.input-field::placeholder { color: var(--muted); }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.3px;
+  width: 100%;
+}
+.btn-red { background: var(--red); color: #fff; }
+.btn-red:hover { background: #d90029; box-shadow: 0 6px 24px rgba(255,0,51,0.3); transform: translateY(-1px); }
+.btn-red:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.server-hint {
+  margin-top: 20px;
+  background: rgba(255,193,7,0.06);
+  border: 1px solid rgba(255,193,7,0.2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--gold);
+  line-height: 1.7;
+}
+.server-hint strong { display: block; margin-bottom: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+
+/* ── AUTH SCREEN ── */
+#screen-auth {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+.auth-logo {
+  margin-bottom: 32px;
+}
+.auth-logo .yt-icon { width: 56px; height: 40px; font-size: 18px; margin: 0 auto 12px; }
+.auth-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 3px;
+}
+.auth-title span { color: var(--red); }
+.auth-sub { font-size: 13px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; margin-top: 6px; margin-bottom: 32px; }
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 24px;
+  background: #fff;
+  color: #333;
+  border: none;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Outfit', sans-serif;
+}
+.google-btn:hover { background: #f0f0f0; box-shadow: 0 6px 24px rgba(255,255,255,0.1); }
+.google-btn svg { flex-shrink: 0; }
+.back-btn {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  color: var(--muted2);
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.back-btn:hover { color: var(--text); }
+
+/* ── MAIN APP ── */
+#screen-app { flex-direction: column; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+.topbar-logo { display: flex; align-items: center; gap: 10px; }
+.topbar-logo .yt-icon { width: 32px; height: 22px; font-size: 10px; }
+.topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; }
+.topbar-title span { color: var(--red); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+
+.channel-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 6px 14px 6px 8px;
+  font-size: 12px;
+}
+.channel-avatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  overflow: hidden;
+}
+.channel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.channel-name { font-weight: 600; font-size: 13px; }
+.channel-subs { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted2); }
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,230,118,0.08);
+  border: 1px solid rgba(0,230,118,0.2);
+  color: var(--green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 5px 10px;
+  border-radius: 20px;
+}
+.live-dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:0.2} }
+
+.sign-out-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted2);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sign-out-btn:hover { border-color: var(--red); color: var(--red); }
+
+.app-body {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  padding: 24px 28px;
+  flex: 1;
+}
+
+/* PANEL */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.panel:last-child { margin-bottom: 0; }
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.ph-icon { font-size: 14px; }
+.ph-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--muted2);
+}
+.ph-badge {
+  margin-left: auto;
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.panel-body { padding: 20px; }
+
+/* UPLOAD ZONE */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone.drag { border-color: var(--red); background: var(--red-glow); }
+.upload-zone:hover { border-color: #333; }
+.upload-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,0,51,0.06) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.upload-zone:hover .upload-glow { opacity: 1; }
+.upload-icon { font-size: 36px; display: block; margin-bottom: 10px; }
+.upload-main { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+.upload-sub { font-size: 11px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; }
+#file-input { display: none; }
+
+/* SCHEDULE ROW */
+.schedule-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1 / -1; }
+label {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted2);
+}
+input[type="text"], input[type="datetime-local"], select, textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: 'Outfit', sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--red); }
+select option { background: #111; }
+textarea { resize: vertical; min-height: 72px; }
+
+.btn-row { display: flex; gap: 10px; margin-top: 16px; }
+.btn-sm { width: auto; padding: 10px 20px; font-size: 12px; font-weight: 600; border-radius: 7px; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  transition: all 0.2s;
+}
+.btn-outline:hover { border-color: var(--red); color: var(--red); }
+
+/* QUEUE */
+.queue-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 14px;
+  margin-bottom: 10px;
+  animation: slideIn 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+@keyframes slideIn { from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)} }
+.qi-top { display: flex; align-items: flex-start; gap: 12px; }
+.qi-thumb {
+  width: 54px; height: 36px;
+  background: var(--border);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.qi-info { flex: 1; min-width: 0; }
+.qi-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.qi-meta { font-size: 10px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; }
+.qi-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.qi-status {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  padding: 3px 9px; border-radius: 20px; white-space: nowrap;
+}
+.s-pending { background:rgba(100,100,100,0.12); color:#666; border:1px solid var(--border); }
+.s-uploading { background:rgba(255,0,51,0.1); color:var(--red); border:1px solid rgba(255,0,51,0.3); }
+.s-scheduled { background:rgba(255,193,7,0.1); color:var(--gold); border:1px solid rgba(255,193,7,0.25); }
+.s-live { background:rgba(0,230,118,0.1); color:var(--green); border:1px solid rgba(0,230,118,0.25); }
+.s-error { background:rgba(255,60,60,0.1); color:#ff5555; border:1px solid rgba(255,60,60,0.25); }
+
+.qi-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; transition: color 0.2s; }
+.qi-del:hover { color: var(--red); }
+
+.progress-wrap { margin-top: 10px; }
+.progress-bar-bg {
+  width: 100%; height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--red);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.progress-bar-fill::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+  animation: shimmer 1.2s infinite;
+}
+@keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted2);
+}
+.error-msg { margin-top: 8px; font-size: 11px; color: #ff5555; font-family: 'JetBrains Mono', monospace; }
+
+/* YT LINK */
+.yt-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 6px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--red);
+  text-decoration: none;
+}
+.yt-link:hover { text-decoration: underline; }
+
+/* BEST TIMES */
+.heatmap-grid { margin-top: 12px; overflow-x: auto; }
+.hm-hour-row { display: flex; gap: 3px; padding-left: 30px; margin-bottom: 3px; }
+.hm-hl { width: 16px; font-size: 8px; font-family: 'JetBrains Mono', monospace; color: var(--muted); text-align: center; flex-shrink: 0; }
+.hm-row { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+.hm-dl { width: 26px; font-size: 8px; font-family: 'JetBrains Mono', monospace; color: var(--muted2); text-align: right; flex-shrink: 0; }
+.hm-cell { width: 16px; height: 16px; border-radius: 2px; flex-shrink: 0; cursor: pointer; transition: transform 0.1s; }
+.hm-cell:hover { transform: scale(1.4); z-index: 2; position: relative; }
+
+.best-slot {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.best-slot:hover, .best-slot.sel { border-color: var(--red); background: rgba(255,0,51,0.05); }
+.bs-rank { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--red); width: 20px; text-align: center; }
+.bs-info { flex: 1; }
+.bs-time { font-size: 13px; font-weight: 600; }
+.bs-detail { font-size: 10px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; }
+.bs-score { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gold); }
+
+/* STATS */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+.stat-v { font-family: 'Bebas Neue', sans-serif; font-size: 26px; line-height: 1; margin-bottom: 2px; }
+.stat-v em { font-style: normal; font-size: 16px; color: var(--red); }
+.stat-l { font-size: 9px; font-family: 'JetBrains Mono', monospace; color: var(--muted2); text-transform: uppercase; letter-spacing: 1px; }
+
+/* TOGGLES */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.toggle-row:last-child { border: none; }
+.tr-info .tr-label { font-size: 13px; }
+.tr-info .tr-sub { font-size: 10px; color: var(--muted2); font-family: 'JetBrains Mono', monospace; }
+.toggle { width: 38px; height: 20px; background: var(--border); border-radius: 10px; position: relative; cursor: pointer; transition: background 0.25s; flex-shrink: 0; }
+.toggle.on { background: var(--red); }
+.toggle::after { content:''; position:absolute; width:14px; height:14px; background:#fff; border-radius:50%; top:3px; left:3px; transition:transform 0.25s; }
+.toggle.on::after { transform:translateX(18px); }
+
+/* EMPTY */
+.empty { text-align: center; padding: 30px; color: var(--muted2); }
+.empty .em { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
+.empty p { font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+
+/* TOAST */
+#toasts { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 10000; }
+.toast {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  max-width: 300px;
+  animation: tin 0.3s ease, tout 0.3s ease 2.7s forwards;
+}
+.toast.ok { border-left-color: var(--green); }
+.toast.warn { border-left-color: var(--gold); }
+@keyframes tin { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+@keyframes tout { from{opacity:1} to{opacity:0;transform:translateX(16px)} }
+
+/* SCHEDULED DATE DISPLAY */
+.schedule-preview {
+  margin-top: 12px;
+  background: rgba(255,193,7,0.05);
+  border: 1px solid rgba(255,193,7,0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gold);
+  display: none;
+}
+.schedule-preview.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ SETUP SCREEN -->
+<div class="screen active" id="screen-setup">
+  <div class="setup-card">
+    <div class="setup-hero">
+      <div class="yt-logo-big">
+        <div class="yt-icon">▶</div>
+        <div>
+          <div class="setup-title">AUTO<span>TUBE</span></div>
+          <div class="setup-subtitle">Real YouTube Scheduler · OAuth + API v3</div>
+        </div>
+      </div>
+    </div>
+    <div class="setup-body">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-text">
+            <strong>Create a Google Cloud project</strong><br>
+            <a class="step-link" href="https://console.cloud.google.com/projectcreate" target="_blank">→ console.cloud.google.com/projectcreate</a>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-text">
+            <strong>Enable YouTube Data API v3</strong><br>
+            APIs &amp; Services → Library → search "YouTube Data API v3" → Enable<br>
+            <a class="step-link" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">→ Enable it here</a>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-text">
+            <strong>Create OAuth 2.0 Credentials</strong><br>
+            APIs &amp; Services → Credentials → Create → OAuth Client ID → <strong>Web application</strong><br>
+            Add authorized JavaScript origin: <code>http://localhost:8080</code>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-text">
+            <strong>Add yourself as a Test User</strong><br>
+            OAuth consent screen → Test users → Add your Gmail address
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-text">
+            <strong>Serve this file locally</strong><br>
+            Open a terminal in this file's folder and run:<br>
+            <code>python -m http.server 8080</code>
+            &nbsp;then open&nbsp; <code>http://localhost:8080/yt-auto-uploader.html</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Your OAuth Client ID</label>
+        <input class="input-field" id="client-id-input" type="text"
+          placeholder="xxxxxx.apps.googleusercontent.com">
+      </div>
+
+      <button class="btn btn-red" onclick="saveClientId()" id="save-btn">
+        Continue to Sign In →
+      </button>
+
+      <div class="server-hint">
+        <strong>⚠ Must be served via localhost</strong>
+        Google blocks OAuth from <code>file://</code> URLs. Run the Python command above, then visit <code>http://localhost:8080/yt-auto-uploader.html</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ AUTH SCREEN -->
+<div class="screen" id="screen-auth">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="yt-icon">▶</div>
+      <div class="auth-title">AUTO<span>TUBE</span></div>
+      <div class="auth-sub">Connect your YouTube channel to continue</div>
+    </div>
+    <button class="google-btn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18">
+        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+      </svg>
+      Sign in with Google
+    </button>
+    <button class="back-btn" onclick="showScreen('setup')">← Change Client ID</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ MAIN APP -->
+<div class="screen" id="screen-app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-logo">
+      <div class="yt-icon">▶</div>
+      <div class="topbar-title">AUTO<span>TUBE</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><div class="live-dot"></div> CONNECTED</div>
+      <div class="channel-pill">
+        <div class="channel-avatar" id="ch-avatar">?</div>
+        <div>
+          <div class="channel-name" id="ch-name">Loading…</div>
+          <div class="channel-subs" id="ch-subs">— subscribers</div>
+        </div>
+      </div>
+      <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="app-body">
+
+    <!-- LEFT -->
+    <div>
+
+      <!-- UPLOAD PANEL -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="ph-icon">📤</span>
+          <span class="ph-title">Upload Video</span>
+        </div>
+        <div class="panel-body">
+          <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <div class="upload-glow"></div>
+            <span class="upload-icon">🎬</span>
+            <div class="upload-main">Drop video here or click to browse</div>
+            <div class="upload-sub">MP4 · MOV · AVI · MKV · up to 256GB</div>
+          </div>
+          <input type="file" id="file-input" accept="video/*">
+
+          <div style="margin-top:16px;">
+            <div class="form-group" style="margin-bottom:12px;">
+              <label>Video Title</label>
+              <input type="text" id="vid-title" placeholder="My awesome video">
+            </div>
+            <div class="form-group" style="margin-bottom:12px;">
+              <label>Description</label>
+              <textarea id="vid-desc" placeholder="Tell viewers about your video..."></textarea>
+            </div>
+
+            <div class="schedule-row">
+              <div class="form-group">
+                <label>Privacy</label>
+                <select id="vid-privacy">
+                  <option value="public">Public</option>
+                  <option value="private" selected>Schedule (Private until)</option>
+                  <option value="unlisted">Unlisted</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Category</label>
+                <select id="vid-category">
+                  <option value="22">People & Blogs</option>
+                  <option value="24">Entertainment</option>
+                  <option value="27">Education</option>
+                  <option value="20">Gaming</option>
+                  <option value="10">Music</option>
+                  <option value="28">Science & Tech</option>
+                  <option value="17">Sports</option>
+                </select>
+              </div>
+              <div class="form-group full" id="schedule-group">
+                <label>Publish Date &amp; Time</label>
+                <input type="datetime-local" id="vid-schedule">
+              </div>
+            </div>
+
+            <div class="schedule-preview" id="sched-preview"></div>
+
+            <!-- BEST TIME QUICK-PICK -->
+            <div style="margin-top:14px;padding:12px;background:rgba(255,0,51,0.04);border:1px solid rgba(255,0,51,0.15);border-radius:8px;">
+              <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">⚡ Quick-pick best time</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;" id="quickpick-btns"></div>
+            </div>
+
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-red btn-sm" onclick="startUpload()" id="upload-btn" style="flex:1;" disabled>
+              Select a file first
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="clearForm()">✕ Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUEUE -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="ph-icon">📋</span>
+          <span class="ph-title">Upload Queue</span>
+          <div class="ph-badge" id="q-badge">0</div>
+        </div>
+        <div class="panel-body" id="queue-body">
+          <div class="empty"><div class="em">📭</div><p>No uploads yet. Add a video above.</p></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDEBAR -->
+    <div>
+
+      <!-- BEST TIMES -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="ph-icon">🎯</span>
+          <span class="ph-title">Best Times to Post</span>
+        </div>
+        <div class="panel-body">
+          <div class="heatmap-grid">
+            <div class="hm-hour-row" id="hm-hours"></div>
+            <div id="hm-grid"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+            <span style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1a1a1a;border:1px solid var(--border);display:inline-block;"></span> Low</span>
+            <span style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:rgba(255,0,51,0.5);display:inline-block;"></span> Good</span>
+            <span style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted2);display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--red);display:inline-block;"></span> Peak</span>
+          </div>
+
+          <div style="margin-top:14px;">
+            <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Top Slots (General)</div>
+            <div class="best-slot sel" data-dt="next-tue-18" onclick="pickSlot(this,'Tuesday · 6:00 PM','98%')">
+              <div class="bs-rank">1</div>
+              <div class="bs-info"><div class="bs-time">Tuesday · 6:00 PM</div><div class="bs-detail">18–34 · Entertainment</div></div>
+              <div class="bs-score">98%</div>
+            </div>
+            <div class="best-slot" data-dt="next-sat-10" onclick="pickSlot(this,'Saturday · 10:00 AM','91%')">
+              <div class="bs-rank">2</div>
+              <div class="bs-info"><div class="bs-time">Saturday · 10:00 AM</div><div class="bs-detail">All ages · Weekend</div></div>
+              <div class="bs-score">91%</div>
+            </div>
+            <div class="best-slot" data-dt="next-wed-12" onclick="pickSlot(this,'Wednesday · 12:00 PM','87%')">
+              <div class="bs-rank">3</div>
+              <div class="bs-info"><div class="bs-time">Wednesday · 12:00 PM</div><div class="bs-detail">Lunch hour · 25–44</div></div>
+              <div class="bs-score">87%</div>
+            </div>
+            <div class="best-slot" data-dt="next-sun-20" onclick="pickSlot(this,'Sunday · 8:00 PM','84%')">
+              <div class="bs-rank">4</div>
+              <div class="bs-info"><div class="bs-time">Sunday · 8:00 PM</div><div class="bs-detail">Prime time · All</div></div>
+              <div class="bs-score">84%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHANNEL STATS -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="ph-icon">📊</span>
+          <span class="ph-title">Channel Stats</span>
+        </div>
+        <div class="panel-body">
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-v" id="stat-subs">—<em></em></div>
+              <div class="stat-l">Subscribers</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-v" id="stat-videos">—<em></em></div>
+              <div class="stat-l">Total Videos</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-v" id="stat-views">—<em></em></div>
+              <div class="stat-l">Total Views</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-v" id="stat-queued">0<em></em></div>
+              <div class="stat-l">Queued Now</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUTOMATION -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="ph-icon">🤖</span>
+          <span class="ph-title">Automation</span>
+        </div>
+        <div class="panel-body" style="padding-top:8px;padding-bottom:8px;">
+          <div class="toggle-row">
+            <div class="tr-info"><div class="tr-label">Auto-pick best time</div><div class="tr-sub">Use top slot on upload</div></div>
+            <div class="toggle on" id="tog-auto" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="tr-info"><div class="tr-label">Auto-fill title from filename</div><div class="tr-sub">Clean filename → title</div></div>
+            <div class="toggle on" id="tog-title" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="tr-info"><div class="tr-label">Notify on upload complete</div><div class="tr-sub">Browser notification</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="tr-info"><div class="tr-label">Auto-add default tags</div><div class="tr-sub">From metadata settings</div></div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+let CLIENT_ID = '';
+let accessToken = null;
+let tokenClient = null;
+let channelInfo = null;
+let selectedFile = null;
+let uploadQueue = [];
+let uploadIdCounter = 0;
+
+const SCOPES = 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly';
+
+// ── SCREEN MANAGEMENT ─────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+// ── SETUP ─────────────────────────────────────────────────────
+function saveClientId() {
+  const val = document.getElementById('client-id-input').value.trim();
+  if (!val || !val.includes('.apps.googleusercontent.com')) {
+    toast('Enter a valid Client ID (ends with .apps.googleusercontent.com)', 'err'); return;
+  }
+  CLIENT_ID = val;
+  localStorage.setItem('autotube_client_id', val);
+  initOAuth();
+  showScreen('auth');
+}
+
+function initOAuth() {
+  if (!window.google) { setTimeout(initOAuth, 500); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: handleToken,
+  });
+}
+
+// ── AUTH ──────────────────────────────────────────────────────
+function signIn() {
+  if (!tokenClient) { toast('OAuth not ready, please wait…', 'warn'); return; }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function handleToken(response) {
+  if (response.error) { toast('Sign-in failed: ' + response.error, 'err'); return; }
+  accessToken = response.access_token;
+  showScreen('app');
+  fetchChannelInfo();
+  buildHeatmap();
+  buildQuickPicks();
+  setDefaultSchedule();
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  channelInfo = null;
+  selectedFile = null;
+  showScreen('auth');
+  toast('Signed out', 'ok');
+}
+
+// ── CHANNEL INFO ──────────────────────────────────────────────
+async function fetchChannelInfo() {
+  try {
+    const r = await ytGet('channels', { part: 'snippet,statistics', mine: true });
+    if (!r.items || !r.items.length) { toast('No channel found on this account', 'err'); return; }
+    channelInfo = r.items[0];
+    const sn = channelInfo.snippet;
+    const st = channelInfo.statistics;
+
+    document.getElementById('ch-name').textContent = sn.title;
+    document.getElementById('ch-subs').textContent = fmtNum(st.subscriberCount) + ' subs';
+    document.getElementById('stat-subs').innerHTML = fmtNum(st.subscriberCount) + '<em></em>';
+    document.getElementById('stat-videos').innerHTML = fmtNum(st.videoCount) + '<em></em>';
+    document.getElementById('stat-views').innerHTML = fmtNum(st.viewCount) + '<em></em>';
+
+    const avatarEl = document.getElementById('ch-avatar');
+    if (sn.thumbnails && sn.thumbnails.default) {
+      avatarEl.innerHTML = `<img src="${sn.thumbnails.default.url}" alt="">`;
+    } else {
+      avatarEl.textContent = sn.title[0].toUpperCase();
+    }
+  } catch(e) {
+    toast('Could not load channel info: ' + e.message, 'err');
+  }
+}
+
+// ── YOUTUBE API HELPERS ───────────────────────────────────────
+async function ytGet(resource, params) {
+  const url = new URL(`https://www.googleapis.com/youtube/v3/${resource}`);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r.ok) {
+    const err = await r.json();
+    throw new Error(err.error?.message || r.statusText);
+  }
+  return r.json();
+}
+
+// ── FILE SELECTION ────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function() {
+  if (!this.files[0]) return;
+  selectFile(this.files[0]);
+});
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) selectFile(e.dataTransfer.files[0]);
+});
+
+function selectFile(file) {
+  // Android often returns empty file.type - accept any file
+  selectedFile = file;
+
+  const nameEl = document.getElementById('vid-title');
+  if (document.getElementById('tog-title').classList.contains('on') && !nameEl.value) {
+    nameEl.value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+  }
+
+  document.getElementById('upload-btn').disabled = false;
+  document.getElementById('upload-btn').textContent = `⬆ Upload "${file.name.substring(0,30)}${file.name.length>30?'…':''}"`;
+
+  const dz = document.getElementById('drop-zone');
+  dz.querySelector('.upload-icon').textContent = '✅';
+  dz.querySelector('.upload-main').textContent = file.name;
+  dz.querySelector('.upload-sub').textContent = fmtSize(file.size) + ' · Ready to upload';
+
+  toast('File selected: ' + fmtSize(file.size), 'ok');
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────
+async function startUpload() {
+  // Re-read file from input in case selectedFile was lost
+  const fileInput = document.getElementById('file-input');
+  if (fileInput.files && fileInput.files[0]) {
+    selectedFile = fileInput.files[0];
+  }
+  if (!selectedFile) { toast('Please select a file first', 'err'); return; }
+  if (!accessToken) { toast('Not signed in', 'err'); return; }
+
+  const title = document.getElementById('vid-title').value.trim() || selectedFile.name.replace(/\.[^.]+$/, '');
+  const desc = document.getElementById('vid-desc').value.trim();
+  const privacy = document.getElementById('vid-privacy').value;
+  const catId = document.getElementById('vid-category').value;
+  const schedDt = document.getElementById('vid-schedule').value;
+
+  // Determine actual privacy + publishAt
+  let privacyStatus = privacy;
+  let publishAt = null;
+  if (privacy === 'private' && schedDt) {
+    privacyStatus = 'private';
+    publishAt = new Date(schedDt).toISOString();
+  }
+
+  const id = ++uploadIdCounter;
+  const qItem = { id, name: title, size: fmtSize(selectedFile.size), status: 'uploading', progress: 0, publishAt, videoId: null, error: null };
+  uploadQueue.unshift(qItem);
+  renderQueue();
+
+  // Reset form
+  clearForm();
+
+  try {
+    const videoId = await doResumableUpload(selectedFile, {
+      snippet: { title, description: desc, categoryId: catId },
+      status: { privacyStatus, ...(publishAt ? { publishAt, selfDeclaredMadeForKids: false } : {}) }
+    }, (pct, speed) => {
+      qItem.progress = pct;
+      qItem.speed = speed;
+      renderQueue();
+    });
+
+    qItem.videoId = videoId;
+    qItem.status = publishAt ? 'scheduled' : 'live';
+    qItem.progress = 100;
+    renderQueue();
+    updateQueuedStat();
+
+    const label = publishAt
+      ? `✅ Scheduled! Will go live ${new Date(publishAt).toLocaleString()}`
+      : `✅ Live now!`;
+    toast(label, 'ok');
+
+    if (Notification.permission === 'granted') {
+      new Notification('AutoTube', { body: `"${title}" ${publishAt ? 'scheduled' : 'is live'}!`, icon: '' });
+    }
+
+  } catch(e) {
+    qItem.status = 'error';
+    qItem.error = e.message;
+    renderQueue();
+    toast('Upload failed: ' + e.message, 'err');
+  }
+}
+
+// Resumable upload using YouTube's resumable upload API
+async function doResumableUpload(file, metadata, onProgress) {
+  // Step 1: Initiate resumable session
+  const initRes = await fetch(
+    'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Upload-Content-Type': (file.type || 'video/mp4'),
+        'X-Upload-Content-Length': file.size,
+      },
+      body: JSON.stringify(metadata),
+    }
+  );
+
+  if (!initRes.ok) {
+    const err = await initRes.json();
+    throw new Error(err.error?.message || 'Failed to initiate upload');
+  }
+
+  const uploadUri = initRes.headers.get('Location');
+  if (!uploadUri) throw new Error('No upload URI returned from YouTube');
+
+  // Step 2: Upload file in chunks
+  const CHUNK = 4 * 1024 * 1024; // 4MB chunks
+  let offset = 0;
+  let videoId = null;
+  let lastTime = Date.now();
+  let lastOffset = 0;
+
+  while (offset < file.size) {
+    const end = Math.min(offset + CHUNK, file.size);
+    const chunk = file.slice(offset, end);
+
+    const now = Date.now();
+    const elapsed = (now - lastTime) / 1000;
+    const bytesTransferred = offset - lastOffset;
+    const speed = elapsed > 0 ? bytesTransferred / elapsed : 0;
+    lastTime = now; lastOffset = offset;
+
+    const uploadRes = await fetch(uploadUri, {
+      method: 'PUT',
+      headers: {
+        'Content-Range': `bytes ${offset}-${end - 1}/${file.size}`,
+        'Content-Type': (file.type || 'video/mp4'),
+      },
+      body: chunk,
+    });
+
+    if (uploadRes.status === 308) {
+      // Incomplete — continue
+      const range = uploadRes.headers.get('Range');
+      offset = range ? parseInt(range.split('-')[1]) + 1 : end;
+    } else if (uploadRes.status === 200 || uploadRes.status === 201) {
+      const data = await uploadRes.json();
+      videoId = data.id;
+      offset = file.size;
+    } else {
+      const err = await uploadRes.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Upload error ${uploadRes.status}`);
+    }
+
+    const pct = Math.round((Math.min(offset, file.size) / file.size) * 100);
+    onProgress(pct, speed);
+  }
+
+  if (!videoId) throw new Error('Upload completed but no video ID returned');
+  return videoId;
+}
+
+// ── QUEUE RENDER ──────────────────────────────────────────────
+function renderQueue() {
+  const body = document.getElementById('queue-body');
+  document.getElementById('q-badge').textContent = uploadQueue.length;
+
+  if (!uploadQueue.length) {
+    body.innerHTML = '<div class="empty"><div class="em">📭</div><p>No uploads yet. Add a video above.</p></div>';
+    return;
+  }
+
+  body.innerHTML = uploadQueue.map(q => {
+    const statusMap = {
+      uploading: ['s-uploading', '⬆ Uploading'],
+      scheduled: ['s-scheduled', '📅 Scheduled'],
+      live: ['s-live', '✔ Live'],
+      error: ['s-error', '✖ Error'],
+      pending: ['s-pending', '⏳ Pending'],
+    };
+    const [cls, label] = statusMap[q.status] || statusMap.pending;
+    const ytLink = q.videoId ? `<a class="yt-link" href="https://studio.youtube.com/video/${q.videoId}/edit" target="_blank">▶ Open in YouTube Studio</a>` : '';
+    const schedLine = q.publishAt ? `<div class="qi-meta" style="margin-top:2px;">🗓 ${new Date(q.publishAt).toLocaleString()}</div>` : '';
+    const progressHtml = q.status === 'uploading' ? `
+      <div class="progress-wrap">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${q.progress}%"></div></div>
+        <div class="progress-label"><span>${q.progress}%</span><span>${q.speed ? fmtSize(q.speed)+'/s' : '…'}</span></div>
+      </div>` : '';
+    const errHtml = q.error ? `<div class="error-msg">⚠ ${q.error}</div>` : '';
+
+    return `<div class="queue-item">
+      <div class="qi-top">
+        <div class="qi-thumb">🎬</div>
+        <div class="qi-info">
+          <div class="qi-name">${q.name}</div>
+          <div class="qi-meta">${q.size}</div>
+          ${schedLine}
+          ${ytLink}
+          ${errHtml}
+        </div>
+        <div class="qi-right">
+          <span class="qi-status ${cls}">${label}</span>
+          <button class="qi-del" onclick="removeFromQueue(${q.id})">✕</button>
+        </div>
+      </div>
+      ${progressHtml}
+    </div>`;
+  }).join('');
+}
+
+function removeFromQueue(id) {
+  uploadQueue = uploadQueue.filter(q => q.id !== id);
+  renderQueue();
+  updateQueuedStat();
+}
+
+function updateQueuedStat() {
+  const n = uploadQueue.filter(q => q.status === 'uploading' || q.status === 'scheduled').length;
+  document.getElementById('stat-queued').innerHTML = n + '<em></em>';
+}
+
+// ── SCHEDULE UI ───────────────────────────────────────────────
+document.getElementById('vid-privacy').addEventListener('change', function() {
+  const grp = document.getElementById('schedule-group');
+  grp.style.display = this.value === 'private' ? 'flex' : 'none';
+  if (this.value !== 'private') document.getElementById('sched-preview').classList.remove('show');
+});
+
+document.getElementById('vid-schedule').addEventListener('change', function() {
+  const d = new Date(this.value);
+  const preview = document.getElementById('sched-preview');
+  if (!isNaN(d)) {
+    preview.textContent = `📅 Will publish: ${d.toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
+    preview.classList.add('show');
+  }
+});
+
+function setDefaultSchedule() {
+  // Default: next Tuesday 6pm
+  const dt = nextWeekday(2, 18, 0);
+  document.getElementById('vid-schedule').value = toLocalDateTimeString(dt);
+}
+
+function nextWeekday(weekday, hour, min) {
+  const d = new Date();
+  d.setHours(hour, min, 0, 0);
+  const day = d.getDay();
+  let diff = (weekday - day + 7) % 7 || 7;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+function toLocalDateTimeString(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// ── QUICK PICKS ───────────────────────────────────────────────
+const BEST_SLOTS = [
+  { label: '⚡ Tue 6PM', weekday: 2, hour: 18, min: 0 },
+  { label: '🔥 Sat 10AM', weekday: 6, hour: 10, min: 0 },
+  { label: '📈 Wed 12PM', weekday: 3, hour: 12, min: 0 },
+  { label: '🌙 Sun 8PM', weekday: 0, hour: 20, min: 0 },
+];
+
+function buildQuickPicks() {
+  const wrap = document.getElementById('quickpick-btns');
+  BEST_SLOTS.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-outline btn-sm';
+    btn.style.fontSize = '11px'; btn.style.padding = '7px 12px';
+    btn.textContent = s.label;
+    btn.onclick = () => {
+      const dt = nextWeekday(s.weekday, s.hour, s.min);
+      document.getElementById('vid-schedule').value = toLocalDateTimeString(dt);
+      document.getElementById('vid-privacy').value = 'private';
+      document.getElementById('schedule-group').style.display = 'flex';
+      document.getElementById('vid-schedule').dispatchEvent(new Event('change'));
+      toast(`Scheduled: ${s.label.replace(/[^a-zA-Z0-9 ]/g,'').trim()}`, 'ok');
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+// ── BEST SLOT PICKER ─────────────────────────────────────────
+function pickSlot(el, label, score) {
+  document.querySelectorAll('.best-slot').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+  const dt = el.dataset.dt;
+  const dayMap = {'next-tue-18':{w:2,h:18},'next-sat-10':{w:6,h:10},'next-wed-12':{w:3,h:12},'next-sun-20':{w:0,h:20}};
+  const s = dayMap[dt];
+  if (s) {
+    const d = nextWeekday(s.w, s.h, 0);
+    document.getElementById('vid-schedule').value = toLocalDateTimeString(d);
+    document.getElementById('vid-privacy').value = 'private';
+    document.getElementById('schedule-group').style.display = 'flex';
+    document.getElementById('vid-schedule').dispatchEvent(new Event('change'));
+  }
+  toast(`Slot selected: ${label} — ${score} engagement`, 'ok');
+}
+
+// ── HEATMAP ───────────────────────────────────────────────────
+const DAY_SCORES = {
+  Mon:[1,0,0,0,0,0,1,2,3,3,4,4,5,4,5,5,5,5,6,6,5,4,3,2],
+  Tue:[1,0,0,0,0,0,1,2,3,4,5,5,5,5,5,6,6,8,10,9,7,5,3,2],
+  Wed:[1,0,0,0,0,0,1,2,3,3,4,5,8,7,6,5,5,6,7,7,6,5,3,2],
+  Thu:[1,0,0,0,0,0,1,2,3,3,4,4,5,5,5,6,6,7,8,7,5,4,3,1],
+  Fri:[1,0,0,0,0,0,1,2,3,4,5,5,6,5,5,5,5,6,7,7,6,6,5,3],
+  Sat:[2,0,0,0,0,1,2,3,4,5,9,8,7,6,6,6,6,7,6,6,5,4,3,2],
+  Sun:[2,0,0,0,0,1,2,3,4,5,6,6,6,6,6,6,6,6,8,9,8,6,4,2],
+};
+
+function buildHeatmap() {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const hours = Array.from({length:24},(_,i)=>i);
+
+  const hourRow = document.getElementById('hm-hours');
+  hours.forEach(h => {
+    const el = document.createElement('div');
+    el.className = 'hm-hl';
+    el.textContent = h % 6 === 0 ? (h===0?'12a':h===12?'12p':h<12?h+'a':(h-12)+'p') : '';
+    hourRow.appendChild(el);
+  });
+
+  const grid = document.getElementById('hm-grid');
+  days.forEach(day => {
+    const row = document.createElement('div'); row.className = 'hm-row';
+    const lbl = document.createElement('div'); lbl.className = 'hm-dl'; lbl.textContent = day;
+    row.appendChild(lbl);
+    DAY_SCORES[day].forEach((s, h) => {
+      const cell = document.createElement('div'); cell.className = 'hm-cell';
+      const a = s / 10;
+      cell.style.background = s === 0 ? '#141414' : s <= 3 ? `rgba(255,0,51,${a*0.3})` : s <= 6 ? `rgba(255,0,51,${a*0.55})` : `rgba(255,0,51,${0.45+a*0.55})`;
+      const hLabel = h===0?'12 AM':h<12?`${h} AM`:h===12?'12 PM':`${h-12} PM`;
+      cell.title = `${day} ${hLabel} — Engagement: ${s}/10`;
+      row.appendChild(cell);
+    });
+    grid.appendChild(row);
+  });
+}
+
+// ── FORM HELPERS ──────────────────────────────────────────────
+function clearForm() {
+  selectedFile = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('vid-title').value = '';
+  document.getElementById('vid-desc').value = '';
+  const dz = document.getElementById('drop-zone');
+  dz.querySelector('.upload-icon').textContent = '🎬';
+  dz.querySelector('.upload-main').textContent = 'Drop video here or click to browse';
+  dz.querySelector('.upload-sub').textContent = 'MP4 · MOV · AVI · MKV · up to 256GB';
+  document.getElementById('upload-btn').disabled = true;
+  document.getElementById('upload-btn').textContent = 'Select a file first';
+  document.getElementById('sched-preview').classList.remove('show');
+  setDefaultSchedule();
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function fmtNum(n) {
+  n = parseInt(n || 0);
+  if (n >= 1e9) return (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1024*1024*1024) return (b/1024/1024).toFixed(1) + ' MB';
+  return (b/1024/1024/1024).toFixed(2) + ' GB';
+}
+
+function toast(msg, type) {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type === 'ok' ? ' ok' : type === 'warn' ? ' warn' : '');
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // Ask for notification permission
+  if (Notification.permission === 'default') Notification.requestPermission();
+
+  // Pre-filled Client ID — skip setup screen entirely
+  CLIENT_ID = '956833069529-b9s16bp03d9uktq6f2fkh74dm4u121td.apps.googleusercontent.com';
+  localStorage.setItem('autotube_client_id', CLIENT_ID);
+  initOAuth();
+  showScreen('auth');
+
+  // Show/hide schedule row based on privacy
+  document.getElementById('schedule-group').style.display = 'flex';
+});
+</script>
+</body>
+</html>
